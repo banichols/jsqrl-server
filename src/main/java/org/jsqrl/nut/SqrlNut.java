@@ -43,7 +43,7 @@ public class SqrlNut {
     /**
      * Recreate a SQRL Nut from a byte array
      *
-     * @param bytes
+     * @param bytes The 128-bit recreated representation of the nut
      */
     public SqrlNut(byte[] bytes) {
 
@@ -92,7 +92,6 @@ public class SqrlNut {
         }
 
         //Get the timestamp seconds and convert into 32 bit integer
-        //Long timestamp = System.currentTimeMillis() / 1000;
         Long timestamp = created.toEpochSecond(ZoneOffset.UTC);
         byteBuffer.putInt(timestamp.intValue());
 

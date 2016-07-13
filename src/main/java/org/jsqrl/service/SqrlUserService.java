@@ -23,8 +23,8 @@ public interface SqrlUserService<T extends SqrlUser> {
      * If the client was identified by a previous identity,
      * update that old identity with the new on they are carrying
      *
-     * @param previousIdentityKey
-     * @param identityKey
+     * @param previousIdentityKey The old identity key to be replaced
+     * @param identityKey The user's updated identity key
      * @return Returns true if the update was successful
      */
     Boolean updateIdentityKey(String previousIdentityKey, String identityKey);

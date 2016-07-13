@@ -36,6 +36,7 @@ public interface SqrlAuthenticationService {
      * Authenticates the user
      *
      * @param nut The linked nut token being used to authenticate the user
+     * @param identityKey The user's public key
      * @return Returns an object to represent the user
      */
     Boolean authenticateNut(String nut, String identityKey);
@@ -44,7 +45,7 @@ public interface SqrlAuthenticationService {
      * This is used to retrieve the user by the nut they have in their
      * authentication request, but only after it has been authenticated.
      *
-     * @param nut
+     * @param nut The nut that was initially provided to the user
      * @return Returns the user's SQRL public key
      */
     String getAuthenticatedSqrlIdentityKey(String nut);

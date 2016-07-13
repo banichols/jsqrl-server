@@ -31,8 +31,8 @@ public class SqrlUtil {
     /**
      * Strips the end equals characters from a base64 encoded string
      *
-     * @param base64EncodedString
-     * @return Returns the provided encoded string, minus its trailing = characters
+     * @param base64EncodedString The Base64 encoded string to strip the trailing "=" characters from
+     * @return The provided encoded string, minus its trailing = characters
      */
     public static String stripEndEquals(String base64EncodedString) {
 

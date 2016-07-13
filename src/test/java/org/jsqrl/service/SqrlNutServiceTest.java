@@ -1,6 +1,7 @@
 package org.jsqrl.service;
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.jsqrl.config.SqrlConfig;
 import org.jsqrl.nut.SqrlNut;
 import org.jsqrl.util.SqrlUtil;
@@ -20,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Created by banic_000 on 7/9/2016.
  */
+@Slf4j
 public class SqrlNutServiceTest {
 
 
@@ -47,7 +49,7 @@ public class SqrlNutServiceTest {
 
         SqrlNut nut = service.createNut("1", true);
 
-        System.out.println("Created: " + nut.getCreated());
+        log.debug("Created: {}", nut.getCreated());
 
         String nutString = service.getNutString(nut);
 
@@ -85,7 +87,7 @@ public class SqrlNutServiceTest {
 
         String encryptedStr = new String(encrypted);
 
-        System.out.println("Encrypted: " + encryptedStr);
+        log.debug("Encrypted: {}", encryptedStr);
 
         byte[] decrypted = getCipher(Cipher.DECRYPT_MODE).doFinal(encrypted);
 
@@ -103,19 +105,19 @@ public class SqrlNutServiceTest {
 
         String encryptedStr = new String(encrypted);
 
-        System.out.println("Encrypted string: " + encryptedStr);
+        log.debug("Encrypted string: {}", encryptedStr);
 
         String encoded = SqrlUtil.unpaddedBase64UrlEncoded(encrypted);
 
-        System.out.println("Encoded: " + encoded);
+        log.debug("Encoded: {}", encoded);
 
         byte[] decoded = SqrlUtil.base64UrlDecode(encoded);
 
-        System.out.println("Decoded: " + decoded);
+        log.debug("Decoded: {}", decoded);
 
         byte[] decrypted = getCipher(Cipher.DECRYPT_MODE).doFinal(decoded);
 
-        System.out.println("Decrypted: " + new String(decrypted));
+        log.debug("Decrypted: {}", new String(decrypted));
 
     }
 
