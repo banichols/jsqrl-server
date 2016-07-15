@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.jsqrl.service;
+package org.jsqrl.server;
 
 
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +27,9 @@ import org.jsqrl.config.SqrlConfig;
 import org.jsqrl.error.SqrlException;
 import org.jsqrl.model.*;
 import org.jsqrl.nut.SqrlNut;
+import org.jsqrl.service.SqrlAuthenticationService;
+import org.jsqrl.service.SqrlNutService;
+import org.jsqrl.service.SqrlUserService;
 import org.jsqrl.util.SqrlUtil;
 
 import java.security.*;
@@ -38,7 +41,7 @@ import java.util.Set;
 /**
  * The main service class that follows the SQRL protocol to
  * processes a client SQRL request.
- * <p>
+ *
  * Created by Brent Nichols
  */
 @Slf4j
@@ -82,18 +85,15 @@ public class JSqrlServer {
             return createResponse(responseNutString, null, TransactionInformationFlag.CLIENT_FAILURE);
         }
 
-        byte[] messageBytes = (request.getClient() + request.getServer()).getBytes();
-
-        String identityKey = request.getIdentityKey();
-        String previousIdentityKey = request.getPreviousIdentityKey();
-
-        //Validate message signature
-        byte[] key = SqrlUtil.base64UrlDecode(identityKey);
+        //Validate request signature
         try {
-            verifySqrlSignature(request.getDecodedIdentitySignature(), messageBytes, key);
+            verifySqrlSignature(request);
         } catch (SqrlException e) {
             return createResponse(responseNutString, null, TransactionInformationFlag.CLIENT_FAILURE);
         }
+
+        String identityKey = request.getIdentityKey();
+        String previousIdentityKey = request.getPreviousIdentityKey();
 
         Set<TransactionInformationFlag> tifs = new HashSet<>();
 
@@ -198,18 +198,20 @@ public class JSqrlServer {
 
     }
 
-    private void verifySqrlSignature(byte[] idSignature,
-                                     byte[] message,
-                                     byte[] clientKey) {
+    private void verifySqrlSignature(SqrlClientRequest clientRequest) {
+
+        byte[] requestMessage = (clientRequest.getClient() + clientRequest.getServer()).getBytes();
+        byte[] key = SqrlUtil.base64UrlDecode(clientRequest.getIdentityKey());
 
         try {
+
             Signature signature = new EdDSAEngine(MessageDigest.getInstance("SHA-512"));
             EdDSAParameterSpec edDsaSpec = EdDSANamedCurveTable.getByName(EdDSANamedCurveTable.CURVE_ED25519_SHA512);
 
-            signature.initVerify(new EdDSAPublicKey(new EdDSAPublicKeySpec(clientKey, edDsaSpec)));
-            signature.update(message);
+            signature.initVerify(new EdDSAPublicKey(new EdDSAPublicKeySpec(key, edDsaSpec)));
+            signature.update(requestMessage);
 
-            if (!signature.verify(idSignature)) {
+            if (!signature.verify(clientRequest.getDecodedIdentitySignature())) {
                 throw new SqrlException("Invalid message signature");
             }
         } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {

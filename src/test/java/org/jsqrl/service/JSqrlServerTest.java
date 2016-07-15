@@ -19,6 +19,7 @@ package org.jsqrl.service;
 import lombok.extern.slf4j.Slf4j;
 import org.jsqrl.config.SqrlConfig;
 import org.jsqrl.nut.SqrlNut;
+import org.jsqrl.server.JSqrlServer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
