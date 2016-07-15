@@ -20,17 +20,40 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- *
- *
  * This is the configuration bean class.
  * This object is required by the main JSQRL service.
  */
 @Getter
 @Setter
 public class SqrlConfig {
+
+    /**
+     * This defines the SQRL Protocol version being used.
+     * For the initial version of SQRL, this is 1
+     */
     private String sqrlVersion;
+
+    /**
+     * The server friendly name that will be displayed to
+     * the user when they are authenticating.
+     */
     private String sfn;
+
+    /**
+     * The time that a nut is valid for in seconds.
+     */
     private Long nutExpirationSeconds;
+
+    /**
+     * This should be set to the URI that handles your
+     * SQRL HTTP POST requests. It will let the client
+     * know where it needs to make its requests to.
+     * <p>
+     * Example: /sqrl
+     */
     private String sqrlBaseUri;
+    /**
+     * IP Match required flag. Not currently used in JSQRL.
+     */
     private Boolean ipAddressRequired;
 }
