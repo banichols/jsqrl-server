@@ -26,7 +26,7 @@ And then there are a few classes you will need to instantiate.
 
 Once you have those six things taken care of you are ready to start taking SQRL requests.
 * A user will need a way to request a SQRL nut, in which case you will call `JSqrlServer.createAuthenticationRequest`. Ideally you would have some HTTP GET or similar type of request to provide a user with one of these.
-* Any request that comes in via the HTTP POST should be passed to JSqrlServer.handleClientRequest
+* Any request that comes in via the HTTP POST should be passed to `JSqrlServer.handleClientRequest`
 * There will need to be a way that the user can query if their originally provided Nut has been authenticated. Ideally you would have the front-end constantly make this query and refresh the page once the server has verified that the nut has been authenticated.
 
 Notes:
