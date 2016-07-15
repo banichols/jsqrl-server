@@ -20,7 +20,7 @@ There are a few important classes that you will need to implement.
 * `org.jsqrl.service.SqrlAuthenticationService` : This interface should be implemented by the service you use to handle your authentication data.
 
 And then there are a few classes you will need to instantiate.
-* `org.jsqrl.config.SqrlConfig` : This is the object that will allow you to configure various SQRL related variables such as your Server Friendly Name, Nut token expiration, and base SQRL URI.
+* `org.jsqrl.config.SqrlConfig` : This is the object that will allow you to configure various SQRL related variables such as your Server Friendly Name, Nut token expiration, and the URI the SQRL client should use for its HTTP POSTs.
 * `org.jsqrl.service.SqrlNutService` : This is the service that will generate your SQRL Nut tokens. It requires the configuration object defined above and all the aspects that are required to create SQRL nuts - a random number generator (such as SecureRandom), a hashing instance, and an encryption key.
 * `org.jsqrl.server.JSqrlServer` : This is the main server class that handles the SQRL protocol. It just needs to be instantiated with your SqrlUserService, SqrlAuthenticationService, SqrlConfig, and SqrlNutService.
 
