@@ -113,6 +113,7 @@ public class JSqrlServer {
             }
 
             SqrlUser sqrlUser = userService.getUserBySqrlKey(identityKey);
+            Boolean sqrlEnabled = true;
 
             if (sqrlUser != null) {
                 //If the user is found, add the TIF for identity match
@@ -126,14 +127,23 @@ public class JSqrlServer {
                 }
             }
 
+            //Check for disabled status
+            if (sqrlUser != null && !sqrlUser.sqrlEnabled()) {
+                sqrlEnabled = false;
+                tifs.add(TransactionInformationFlag.SQRL_DISABLED);
+            }
+
             //Determine the command
             SqrlCommand command = request.getCommand();
 
-            if (command == SqrlCommand.QUERY) {
+            if (command == null) {
+                //Unrecognized command
+                tifs.add(TransactionInformationFlag.FUNCTION_NOT_SUPPORTED);
+            } else if (command == SqrlCommand.QUERY && sqrlEnabled) {
                 //Don't authenticate the user, just provide the client
                 //with information on what we know about the user via
                 //the transaction information flags.
-            } else if (command == SqrlCommand.IDENT) {
+            } else if (command == SqrlCommand.IDENT && sqrlEnabled) {
                 //Authenticate the user
                 //Register if needed
                 if (sqrlUser == null) {
@@ -144,25 +154,15 @@ public class JSqrlServer {
                 sqrlSqrlAuthenticationService.authenticateNut(responseNutString, identityKey);
 
                 tifs.add(TransactionInformationFlag.ID_MATCH);
-            } else if (command == SqrlCommand.DISABLE) {
+            } else if (command == SqrlCommand.DISABLE && sqrlEnabled) {
                 //Disable the user's account
                 userService.disableSqrlUser(identityKey);
-            } else if (command == SqrlCommand.REMOVE) {
+            } else if (command == SqrlCommand.REMOVE && sqrlEnabled) {
                 //Remove the user's account
                 userService.removeSqrlUser(identityKey);
             } else if (command == SqrlCommand.ENABLE) {
                 //Re-enable the user's account
                 userService.enableSqrlUser(identityKey);
-            } else {
-                //Unrecognized command
-                tifs.add(TransactionInformationFlag.FUNCTION_NOT_SUPPORTED);
-            }
-
-            //Check if SQRL has been disabled for this user
-            if (sqrlUser != null) {
-                if (!sqrlUser.sqrlEnabled()) {
-                    tifs.add(TransactionInformationFlag.SQRL_DISABLED);
-                }
             }
 
         }

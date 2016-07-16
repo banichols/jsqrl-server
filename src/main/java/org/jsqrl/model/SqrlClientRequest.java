@@ -134,7 +134,8 @@ public class SqrlClientRequest {
 
     private Set<SqrlOptionFlag> parseOptionFlags(Map<String, String> clientParameters) {
         String optionString = clientParameters.get(OPTIONS);
-        return Stream.of(optionString.split("~"))
+        return (optionString == null) ? null :
+                Stream.of(optionString.split("~"))
                 .map(SqrlOptionFlag::from)
                 .filter(o -> o != null)
                 .collect(Collectors.toSet());
