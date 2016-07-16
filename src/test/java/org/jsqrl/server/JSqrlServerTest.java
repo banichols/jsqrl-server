@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.jsqrl.service;
+package org.jsqrl.server;
 
 import lombok.extern.slf4j.Slf4j;
 import net.i2p.crypto.eddsa.EdDSAEngine;
@@ -28,7 +28,9 @@ import org.jsqrl.model.SqrlClientRequest;
 import org.jsqrl.model.SqrlUser;
 import org.jsqrl.model.TransactionInformationFlag;
 import org.jsqrl.nut.SqrlNut;
-import org.jsqrl.server.JSqrlServer;
+import org.jsqrl.service.SqrlAuthenticationService;
+import org.jsqrl.service.SqrlNutService;
+import org.jsqrl.service.SqrlUserService;
 import org.jsqrl.util.SqrlUtil;
 import org.junit.Before;
 import org.junit.Test;
