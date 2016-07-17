@@ -43,6 +43,7 @@ import java.security.*;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.anyString;
@@ -64,10 +65,12 @@ public class JSqrlServerTest {
     private static final Long NUT_EXPIRATION = 1000L;
     private static final String SFN = "SFN";
     private static final String SQRL_BASE = "/sqrlbase";
+    private static final String PREVIOUS_ID_KEY = "PREVIOUS_ID_KEY";
     private static final String VERIFY_UNLOCK_KEY = "VERIFY_UNLOCK_KEY";
     private static final String SERVER_UNLOCK_KEY = "SERVER_UNLOCK_KEY";
     private static final String SERVER = "SERVER";
 
+    private EdDSAParameterSpec edDsaSpec;
     private PrivateKey clientPrivateKey;
     private PublicKey clientPublicKey;
     private byte[] idk;
@@ -111,7 +114,7 @@ public class JSqrlServerTest {
 
         when(sqrlUser.sqrlEnabled()).thenReturn(true);
 
-        EdDSAParameterSpec edDsaSpec = EdDSANamedCurveTable.getByName(EdDSANamedCurveTable.CURVE_ED25519_SHA512);
+        edDsaSpec = EdDSANamedCurveTable.getByName(EdDSANamedCurveTable.CURVE_ED25519_SHA512);
         KeyPairGenerator generator = new KeyPairGenerator();
         generator.initialize(edDsaSpec, new SecureRandom());
 
@@ -139,6 +142,7 @@ public class JSqrlServerTest {
         String clientRequestString = createClientRequestMapString(SQRL_VERSION,
                 "query",
                 SqrlUtil.unpaddedBase64UrlEncoded(idk),
+                null,
                 "suk",
                 null,
                 null);
@@ -158,12 +162,40 @@ public class JSqrlServerTest {
     }
 
     @Test
+    public void testHandleClientRequest_query_user_known() {
+
+        when(userService.getUserBySqrlKey(idkEncoded)).thenReturn(sqrlUser);
+
+        String clientRequestString = createClientRequestMapString(SQRL_VERSION,
+                "query",
+                SqrlUtil.unpaddedBase64UrlEncoded(idk),
+                null,
+                "suk",
+                null,
+                null);
+
+        SqrlClientRequest request = createClientRequest(clientRequestString, SERVER, clientPrivateKey);
+
+        SqrlAuthResponse response = jSqrlServer.handleClientRequest(request, NUT_STRING, IP_ADDRESS);
+
+        assertThat(response.getNut()).isEqualTo(NUT_STRING_2);
+        assertThat(response.getVer()).isEqualTo(SQRL_VERSION);
+        assertThat(response.getQry()).isEqualTo(SQRL_BASE + "?nut=" + NUT_STRING_2);
+        assertThat(response.getTif()).isEqualTo(1);
+
+        verify(sqrlSqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
+        verify(userService).getUserBySqrlKey(idkEncoded);
+
+    }
+
+    @Test
     public void testHandleClientRequest_ident_new_user() {
         when(userService.getUserBySqrlKey(idkEncoded)).thenReturn(null);
 
         String clientRequestString = createClientRequestMapString(SQRL_VERSION,
                 "ident",
                 SqrlUtil.unpaddedBase64UrlEncoded(idk),
+                null,
                 "suk",
                 SERVER_UNLOCK_KEY,
                 VERIFY_UNLOCK_KEY);
@@ -183,6 +215,35 @@ public class JSqrlServerTest {
     }
 
     @Test
+    public void testHandleClientRequest_ident_by_pidk() {
+
+        when(userService.getUserBySqrlKey(idkEncoded)).thenReturn(null);
+        when(userService.getUserBySqrlKey(PREVIOUS_ID_KEY)).thenReturn(sqrlUser);
+
+        String clientRequestString = createClientRequestMapString(SQRL_VERSION,
+                "ident",
+                SqrlUtil.unpaddedBase64UrlEncoded(idk),
+                PREVIOUS_ID_KEY,
+                "suk",
+                SERVER_UNLOCK_KEY,
+                VERIFY_UNLOCK_KEY);
+
+        SqrlClientRequest request = createClientRequest(clientRequestString, SERVER, clientPrivateKey);
+
+        SqrlAuthResponse response = jSqrlServer.handleClientRequest(request, NUT_STRING, IP_ADDRESS);
+
+        assertThat(response.getNut()).isEqualTo(NUT_STRING_2);
+        assertThat(response.getVer()).isEqualTo(SQRL_VERSION);
+        assertThat(response.getQry()).isEqualTo(SQRL_BASE + "?nut=" + NUT_STRING_2);
+        assertResponseTifs(response, TransactionInformationFlag.PREVIOUS_ID_MATCH, TransactionInformationFlag.ID_MATCH);
+
+        verify(sqrlSqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
+        verify(userService).getUserBySqrlKey(idkEncoded);
+        verify(userService).getUserBySqrlKey(PREVIOUS_ID_KEY);
+        verify(userService).updateIdentityKey(PREVIOUS_ID_KEY, idkEncoded);
+    }
+
+    @Test
     public void testHandleClientRequest_ident_disabled_user() {
 
         when(sqrlUser.sqrlEnabled()).thenReturn(false);
@@ -192,6 +253,7 @@ public class JSqrlServerTest {
         String clientRequestString = createClientRequestMapString(SQRL_VERSION,
                 "ident",
                 SqrlUtil.unpaddedBase64UrlEncoded(idk),
+                null,
                 "suk",
                 SERVER_UNLOCK_KEY,
                 VERIFY_UNLOCK_KEY);
@@ -217,6 +279,7 @@ public class JSqrlServerTest {
         String clientRequestString = createClientRequestMapString(SQRL_VERSION,
                 "disable",
                 SqrlUtil.unpaddedBase64UrlEncoded(idk),
+                null,
                 "suk",
                 null,
                 null);
@@ -242,6 +305,7 @@ public class JSqrlServerTest {
         String clientRequestString = createClientRequestMapString(SQRL_VERSION,
                 "enable",
                 SqrlUtil.unpaddedBase64UrlEncoded(idk),
+                null,
                 "suk",
                 null,
                 null);
@@ -267,6 +331,7 @@ public class JSqrlServerTest {
         String clientRequestString = createClientRequestMapString(SQRL_VERSION,
                 "remove",
                 SqrlUtil.unpaddedBase64UrlEncoded(idk),
+                null,
                 "suk",
                 null,
                 null);
@@ -285,10 +350,85 @@ public class JSqrlServerTest {
         verify(userService).removeSqrlUser(idkEncoded);
     }
 
+    @Test
+    public void testUnverifiedSignature() throws Exception {
+
+        //Generate a new key pair so we generate a valid signature, just one
+        //that won't be verified against the original request
+        KeyPairGenerator generator = new KeyPairGenerator();
+        generator.initialize(edDsaSpec, new SecureRandom());
+
+        KeyPair keyPair = generator.generateKeyPair();
+        PrivateKey invalidPrivateKey = keyPair.getPrivate();
+
+        when(userService.getUserBySqrlKey(idkEncoded)).thenReturn(null);
+
+        String clientRequestString = createClientRequestMapString(SQRL_VERSION,
+                "query",
+                SqrlUtil.unpaddedBase64UrlEncoded(idk),
+                "suk",
+                null,
+                null,
+                null);
+
+        SqrlClientRequest request = createClientRequest(clientRequestString, SERVER, invalidPrivateKey);
+
+        SqrlAuthResponse response = jSqrlServer.handleClientRequest(request, NUT_STRING, IP_ADDRESS);
+
+        assertThat(response.getNut()).isEqualTo(NUT_STRING_2);
+        assertThat(response.getVer()).isEqualTo(SQRL_VERSION);
+        assertThat(response.getQry()).isEqualTo(SQRL_BASE + "?nut=" + NUT_STRING_2);
+        assertResponseTifs(response, TransactionInformationFlag.CLIENT_FAILURE);
+
+        /**TODO Is it valid to assume we shouldn't link a request with a bad signature to one that had a good signature?*/
+        verify(sqrlSqrlAuthenticationService, never()).linkNut(NUT_STRING, NUT_STRING_2);
+        verify(userService, never()).getUserBySqrlKey(idkEncoded);
+    }
+
+    @Test
+    public void testHandleInvalidSignature() throws Exception {
+
+        when(userService.getUserBySqrlKey(idkEncoded)).thenReturn(null);
+
+        String clientRequestString = createClientRequestMapString(SQRL_VERSION,
+                "query",
+                SqrlUtil.unpaddedBase64UrlEncoded(idk),
+                null,
+                "suk",
+                null,
+                null);
+
+        SqrlClientRequest request = createClientRequest(clientRequestString, SERVER, clientPrivateKey);
+        request.setIds("invalidsignature");
+
+        SqrlAuthResponse response = jSqrlServer.handleClientRequest(request, NUT_STRING, IP_ADDRESS);
+
+        assertThat(response.getNut()).isEqualTo(NUT_STRING_2);
+        assertThat(response.getVer()).isEqualTo(SQRL_VERSION);
+        assertThat(response.getQry()).isEqualTo(SQRL_BASE + "?nut=" + NUT_STRING_2);
+        assertResponseTifs(response, TransactionInformationFlag.CLIENT_FAILURE);
+
+        /**TODO Is it valid to assume we shouldn't link a request with a bad signature to one that had a good signature?*/
+        verify(sqrlSqrlAuthenticationService, never()).linkNut(NUT_STRING, NUT_STRING_2);
+        verify(userService, never()).getUserBySqrlKey(idkEncoded);
+    }
+
+    private void assertResponseTifs(SqrlAuthResponse response, TransactionInformationFlag... expectedTifs) {
+
+        int expectedTifValue = 0;
+        if (expectedTifs != null) {
+            expectedTifValue = Stream.of(expectedTifs)
+                    .map(TransactionInformationFlag::getHexValue)
+                    .reduce(0, (a, b) -> (a | b));
+        }
+
+        assertThat(response.getTif()).isEqualTo(expectedTifValue);
+    }
+
     private SqrlClientRequest createClientRequest(String unencodedClientString, String unencodedServerString, PrivateKey privateKey) {
         String client = SqrlUtil.unpaddedBase64UrlEncoded(unencodedClientString);
         String server = SqrlUtil.unpaddedBase64UrlEncoded(unencodedServerString);
-        byte[] ids = signRequest(client, server, clientPrivateKey);
+        byte[] ids = signRequest(client, server, privateKey);
 
         SqrlClientRequest request = new SqrlClientRequest();
         request.setClient(client);
@@ -302,6 +442,7 @@ public class JSqrlServerTest {
     private String createClientRequestMapString(String ver,
                                                 String cmd,
                                                 String idk,
+                                                String pidk,
                                                 String opt,
                                                 String suk,
                                                 String vuk) {
@@ -317,6 +458,10 @@ public class JSqrlServerTest {
 
         if (idk != null) {
             appendKeyValueLine(stringBuilder, "idk", idk);
+        }
+
+        if (pidk != null) {
+            appendKeyValueLine(stringBuilder, "pidk", pidk);
         }
 
         if (opt != null) {
