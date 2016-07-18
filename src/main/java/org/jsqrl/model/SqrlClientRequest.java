@@ -57,6 +57,9 @@ public class SqrlClientRequest {
     //ID Signature
     private String ids;
 
+    //Previous ID Signature
+    private String pids;
+
     private Map<String, String> clientParameters;
     private Map<String, String> serverParameters;
 
@@ -109,8 +112,16 @@ public class SqrlClientRequest {
     }
 
     public byte[] getDecodedIdentitySignature() {
-        if (ids != null) {
-            return SqrlUtil.base64UrlDecode(ids);
+        return getDecodedSignature(ids);
+    }
+
+    public byte[] getDecodedPreviousIdSignature() {
+        return getDecodedSignature(pids);
+    }
+
+    private byte[] getDecodedSignature(String signature) {
+        if (signature != null) {
+            return SqrlUtil.base64UrlDecode(signature);
         } else {
             return null;
         }

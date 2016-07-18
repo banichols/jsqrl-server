@@ -215,20 +215,32 @@ public class JSqrlServerTest {
     }
 
     @Test
-    public void testHandleClientRequest_ident_by_pidk() {
+    public void testHandleClientRequest_ident_by_pidk() throws Exception {
+
+        //Generate a new key pair so we can sign the pidk
+        KeyPairGenerator generator = new KeyPairGenerator();
+        generator.initialize(edDsaSpec, new SecureRandom());
+
+        KeyPair keyPair = generator.generateKeyPair();
+        PrivateKey pidkPrivate = keyPair.getPrivate();
+        PublicKey pidkPublic = keyPair.getPublic();
+        String pidkEncoded = getEncodedPublicKeyString(pidkPublic);
 
         when(userService.getUserBySqrlKey(idkEncoded)).thenReturn(null);
-        when(userService.getUserBySqrlKey(PREVIOUS_ID_KEY)).thenReturn(sqrlUser);
+        when(userService.getUserBySqrlKey(pidkEncoded)).thenReturn(sqrlUser);
 
         String clientRequestString = createClientRequestMapString(SQRL_VERSION,
                 "ident",
                 SqrlUtil.unpaddedBase64UrlEncoded(idk),
-                PREVIOUS_ID_KEY,
+                pidkEncoded,
                 "suk",
                 SERVER_UNLOCK_KEY,
                 VERIFY_UNLOCK_KEY);
 
         SqrlClientRequest request = createClientRequest(clientRequestString, SERVER, clientPrivateKey);
+
+        byte[] pids = signRequest(request.getClient(), request.getServer(), pidkPrivate);
+        request.setPids(SqrlUtil.unpaddedBase64UrlEncoded(pids));
 
         SqrlAuthResponse response = jSqrlServer.handleClientRequest(request, NUT_STRING, IP_ADDRESS);
 
@@ -239,8 +251,47 @@ public class JSqrlServerTest {
 
         verify(sqrlSqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
         verify(userService).getUserBySqrlKey(idkEncoded);
-        verify(userService).getUserBySqrlKey(PREVIOUS_ID_KEY);
-        verify(userService).updateIdentityKey(PREVIOUS_ID_KEY, idkEncoded);
+        verify(userService).getUserBySqrlKey(pidkEncoded);
+        verify(userService).updateIdentityKey(pidkEncoded, idkEncoded);
+    }
+
+    @Test
+    public void testHandleClientRequest_ident_by_pidk_invalid_pidk_sig() throws Exception {
+
+        //Generate a new key pair so we can sign the pidk
+        KeyPairGenerator generator = new KeyPairGenerator();
+        generator.initialize(edDsaSpec, new SecureRandom());
+
+        KeyPair keyPair = generator.generateKeyPair();
+        PublicKey pidkPublic = keyPair.getPublic();
+        String pidkEncoded = getEncodedPublicKeyString(pidkPublic);
+
+        when(userService.getUserBySqrlKey(idkEncoded)).thenReturn(null);
+        when(userService.getUserBySqrlKey(pidkEncoded)).thenReturn(sqrlUser);
+
+        String clientRequestString = createClientRequestMapString(SQRL_VERSION,
+                "ident",
+                SqrlUtil.unpaddedBase64UrlEncoded(idk),
+                pidkEncoded,
+                "suk",
+                SERVER_UNLOCK_KEY,
+                VERIFY_UNLOCK_KEY);
+
+        SqrlClientRequest request = createClientRequest(clientRequestString, SERVER, clientPrivateKey);
+
+        //Just use the original ids, it won't be valid
+        request.setPids(request.getIds());
+
+        SqrlAuthResponse response = jSqrlServer.handleClientRequest(request, NUT_STRING, IP_ADDRESS);
+
+        assertThat(response.getNut()).isEqualTo(NUT_STRING_2);
+        assertThat(response.getVer()).isEqualTo(SQRL_VERSION);
+        assertThat(response.getQry()).isEqualTo(SQRL_BASE + "?nut=" + NUT_STRING_2);
+        assertResponseTifs(response, TransactionInformationFlag.CLIENT_FAILURE);
+
+        verify(sqrlSqrlAuthenticationService, never()).linkNut(NUT_STRING, NUT_STRING_2);
+        verify(userService, never()).getUserBySqrlKey(anyString());
+        verify(userService, never()).updateIdentityKey(anyString(), anyString());
     }
 
     @Test
@@ -503,6 +554,12 @@ public class JSqrlServerTest {
         } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
             throw new SqrlException("Unable to verify message signature", e);
         }
+    }
+
+    private String getEncodedPublicKeyString(PublicKey publicKey) {
+        byte[] pkencoded = publicKey.getEncoded();
+        byte[] key = Arrays.copyOfRange(pkencoded, pkencoded.length - 32, pkencoded.length);
+        return SqrlUtil.unpaddedBase64UrlEncoded(key);
     }
 
 }

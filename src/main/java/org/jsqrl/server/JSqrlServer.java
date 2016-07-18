@@ -85,9 +85,9 @@ public class JSqrlServer {
             return createResponse(responseNutString, null, TransactionInformationFlag.CLIENT_FAILURE);
         }
 
-        //Validate request signature
+        //Validate request signatures
         try {
-            verifySqrlSignature(request);
+            verifySqrlRequestSignatures(request);
         } catch (SqrlException e) {
             return createResponse(responseNutString, null, TransactionInformationFlag.CLIENT_FAILURE);
         }
@@ -198,26 +198,41 @@ public class JSqrlServer {
 
     }
 
-    private void verifySqrlSignature(SqrlClientRequest clientRequest) {
+    private void verifySqrlRequestSignatures(SqrlClientRequest clientRequest) {
 
         byte[] requestMessage = (clientRequest.getClient() + clientRequest.getServer()).getBytes();
         byte[] key = SqrlUtil.base64UrlDecode(clientRequest.getIdentityKey());
 
         try {
-
             Signature signature = new EdDSAEngine(MessageDigest.getInstance("SHA-512"));
             EdDSAParameterSpec edDsaSpec = EdDSANamedCurveTable.getByName(EdDSANamedCurveTable.CURVE_ED25519_SHA512);
 
-            signature.initVerify(new EdDSAPublicKey(new EdDSAPublicKeySpec(key, edDsaSpec)));
-            signature.update(requestMessage);
-
-            if (!signature.verify(clientRequest.getDecodedIdentitySignature())) {
+            if (!verifyEdDSASignature(signature, edDsaSpec, key, requestMessage, clientRequest.getDecodedIdentitySignature())) {
                 throw new SqrlException("Invalid message signature");
             }
+
+            //Verify the Previous ID if they are carrying one
+            String previousIdKey = clientRequest.getPreviousIdentityKey();
+            if (previousIdKey != null) {
+                byte[] pidKey = SqrlUtil.base64UrlDecode(previousIdKey);
+                if (!verifyEdDSASignature(signature, edDsaSpec, pidKey, requestMessage, clientRequest.getDecodedPreviousIdSignature())) {
+                    throw new SqrlException("Invalid message signature for previous ID");
+                }
+            }
+
         } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
             throw new SqrlException("Unable to verify message signature", e);
         }
+    }
 
+    private Boolean verifyEdDSASignature(Signature verifier,
+                                         EdDSAParameterSpec spec,
+                                         byte[] key,
+                                         byte[] message,
+                                         byte[] signature) throws InvalidKeyException, SignatureException {
+        verifier.initVerify(new EdDSAPublicKey(new EdDSAPublicKeySpec(key, spec)));
+        verifier.update(message);
+        return verifier.verify(signature);
     }
 
 }
