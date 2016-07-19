@@ -34,7 +34,7 @@ import java.util.stream.Stream;
 @Builder
 public class SqrlAuthResponse {
 
-    private static final String LINE_SEPERATOR = "\n";
+    private static final String LINE_SEPARATOR = "\r\n";
 
     private String ver;
 
@@ -59,9 +59,9 @@ public class SqrlAuthResponse {
         StringBuilder sqrlResponseStringBuilder = new StringBuilder("");
 
         sqrlResponseStringBuilder
-                .append("ver=").append(ver).append(LINE_SEPERATOR)
-                .append("nut=").append(nut).append(LINE_SEPERATOR)
-                .append("tif=").append(tif).append(LINE_SEPERATOR)
+                .append("ver=").append(ver).append(LINE_SEPARATOR)
+                .append("nut=").append(nut).append(LINE_SEPARATOR)
+                .append("tif=").append(tif).append(LINE_SEPARATOR)
                 .append("qry=").append(qry);
 
         appendKeyValuePairIfExists(sqrlResponseStringBuilder, "url", url);
@@ -85,7 +85,7 @@ public class SqrlAuthResponse {
                                                      String key,
                                                      String value) {
         if (value != null) {
-            builder.append(LINE_SEPERATOR).append(key).append("=").append(value);
+            builder.append(LINE_SEPARATOR).append(key).append("=").append(value);
         }
 
         return builder;

@@ -80,6 +80,9 @@ public class JSqrlServer {
         SqrlNut responseNut = nutService.createNut(ipAddress, requestNut.isQr());
         String responseNutString = nutService.getNutString(responseNut);
 
+        //Prepare the server unlock key value for the response
+        String sukResponse = null;
+
         //Check protocol version first
         if (!request.getRequestVersion().equals(config.getSqrlVersion())) {
             return createResponse(responseNutString, null, TransactionInformationFlag.CLIENT_FAILURE);
@@ -127,6 +130,10 @@ public class JSqrlServer {
                 }
             }
 
+            if (sqrlUser != null && request.getOptionFlags().contains(SqrlOptionFlag.SERVER_UNLOCK_KEY)) {
+                sukResponse = sqrlUser.getServerUnlockKey();
+            }
+
             //Check for disabled status
             if (sqrlUser != null && !sqrlUser.sqrlEnabled()) {
                 sqrlEnabled = false;
@@ -166,15 +173,6 @@ public class JSqrlServer {
             }
 
         }
-
-        String sukResponse = null;
-        /**
-         * TODO Windows client is re-creating the query incorrectly if the SUK is provided
-         * TODO Check to see if it's a bug here, or with the client.
-         */
-/*        if(request.getOptionFlags().contains(SqrlOptionFlag.SERVER_UNLOCK_KEY) && sqrlUser != null){
-            sukResponse = sqrlUser.getServerUnlockKey();
-        }*/
 
         SqrlAuthResponse response = createResponse(
                 responseNutString,
