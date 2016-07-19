@@ -60,6 +60,9 @@ public class SqrlClientRequest {
     //Previous ID Signature
     private String pids;
 
+    //Unlock Request Signature
+    private String urs;
+
     private Map<String, String> clientParameters;
     private Map<String, String> serverParameters;
 
@@ -117,6 +120,10 @@ public class SqrlClientRequest {
 
     public byte[] getDecodedPreviousIdSignature() {
         return getDecodedSignature(pids);
+    }
+
+    public byte[] getDecodedUnlockRequestSignature() {
+        return getDecodedSignature(urs);
     }
 
     private byte[] getDecodedSignature(String signature) {

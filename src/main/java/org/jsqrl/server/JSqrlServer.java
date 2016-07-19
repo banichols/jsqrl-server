@@ -52,6 +52,8 @@ public class JSqrlServer {
     private SqrlConfig config;
     private SqrlNutService nutService;
 
+    private EdDSAParameterSpec edDsaSpec;
+
     public JSqrlServer(SqrlUserService userService,
                        SqrlAuthenticationService sqrlSqrlAuthenticationService,
                        SqrlConfig config,
@@ -60,6 +62,7 @@ public class JSqrlServer {
         this.sqrlSqrlAuthenticationService = sqrlSqrlAuthenticationService;
         this.config = config;
         this.nutService = nutService;
+        edDsaSpec = EdDSANamedCurveTable.getByName(EdDSANamedCurveTable.CURVE_ED25519_SHA512);
     }
 
     public String createAuthenticationRequest(String ipAddress, Boolean qr) {
@@ -88,10 +91,13 @@ public class JSqrlServer {
             return createResponse(responseNutString, null, TransactionInformationFlag.CLIENT_FAILURE);
         }
 
-        //Validate request signatures
+        //Validate IDS and PIDS request signatures
+        Signature verifier;
         try {
-            verifySqrlRequestSignatures(request);
-        } catch (SqrlException e) {
+            verifier = new EdDSAEngine(MessageDigest.getInstance("SHA-512"));
+            verifyIdSignature(request, verifier);
+            verifyPreviousIdSignature(request, verifier);
+        } catch (SqrlException | NoSuchAlgorithmException e) {
             return createResponse(responseNutString, null, TransactionInformationFlag.CLIENT_FAILURE);
         }
 
@@ -166,9 +172,11 @@ public class JSqrlServer {
                 userService.disableSqrlUser(identityKey);
             } else if (command == SqrlCommand.REMOVE && sqrlEnabled) {
                 //Remove the user's account
+                verifyUnlockRequestSignature(request, sqrlUser.getVerifyUnlockKey(), verifier);
                 userService.removeSqrlUser(identityKey);
             } else if (command == SqrlCommand.ENABLE) {
                 //Re-enable the user's account
+                verifyUnlockRequestSignature(request, sqrlUser.getVerifyUnlockKey(), verifier);
                 userService.enableSqrlUser(identityKey);
             }
 
@@ -196,39 +204,51 @@ public class JSqrlServer {
 
     }
 
-    private void verifySqrlRequestSignatures(SqrlClientRequest clientRequest) {
+    private void verifyIdSignature(SqrlClientRequest request, Signature verifier) {
+        verifySqrlRequestSignature(
+                request,
+                verifier,
+                SqrlUtil.base64UrlDecode(request.getIdentityKey()),
+                request.getDecodedIdentitySignature(),
+                "Unable to verify ID Signature");
+    }
 
-        byte[] requestMessage = (clientRequest.getClient() + clientRequest.getServer()).getBytes();
-        byte[] key = SqrlUtil.base64UrlDecode(clientRequest.getIdentityKey());
+    private void verifyUnlockRequestSignature(SqrlClientRequest request, String verifyUnlockKey, Signature verifier) {
+        verifySqrlRequestSignature(
+                request,
+                verifier,
+                SqrlUtil.base64UrlDecode(verifyUnlockKey),
+                request.getDecodedUnlockRequestSignature(),
+                "Unable to verify Unlock Request Signature");
+    }
 
+    private void verifyPreviousIdSignature(SqrlClientRequest request, Signature verifier) {
+        if (request.getPreviousIdentityKey() != null) {
+            verifySqrlRequestSignature(
+                    request,
+                    verifier,
+                    SqrlUtil.base64UrlDecode(request.getPreviousIdentityKey()),
+                    request.getDecodedPreviousIdSignature(),
+                    "Unable to verify Previous ID Signature");
+        }
+    }
+
+    private void verifySqrlRequestSignature(SqrlClientRequest request, Signature verifier, byte[] key, byte[] signature, String errorMessage) {
+        byte[] requestMessage = (request.getClient() + request.getServer()).getBytes();
         try {
-            Signature signature = new EdDSAEngine(MessageDigest.getInstance("SHA-512"));
-            EdDSAParameterSpec edDsaSpec = EdDSANamedCurveTable.getByName(EdDSANamedCurveTable.CURVE_ED25519_SHA512);
-
-            if (!verifyEdDSASignature(signature, edDsaSpec, key, requestMessage, clientRequest.getDecodedIdentitySignature())) {
-                throw new SqrlException("Invalid message signature");
+            if (!verifyEdDSASignature(verifier, key, requestMessage, signature)) {
+                throw new SqrlException(errorMessage);
             }
-
-            //Verify the Previous ID if they are carrying one
-            String previousIdKey = clientRequest.getPreviousIdentityKey();
-            if (previousIdKey != null) {
-                byte[] pidKey = SqrlUtil.base64UrlDecode(previousIdKey);
-                if (!verifyEdDSASignature(signature, edDsaSpec, pidKey, requestMessage, clientRequest.getDecodedPreviousIdSignature())) {
-                    throw new SqrlException("Invalid message signature for previous ID");
-                }
-            }
-
-        } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+        } catch (InvalidKeyException | SignatureException e) {
             throw new SqrlException("Unable to verify message signature", e);
         }
     }
 
     private Boolean verifyEdDSASignature(Signature verifier,
-                                         EdDSAParameterSpec spec,
                                          byte[] key,
                                          byte[] message,
                                          byte[] signature) throws InvalidKeyException, SignatureException {
-        verifier.initVerify(new EdDSAPublicKey(new EdDSAPublicKeySpec(key, spec)));
+        verifier.initVerify(new EdDSAPublicKey(new EdDSAPublicKeySpec(key, edDsaSpec)));
         verifier.update(message);
         return verifier.verify(signature);
     }

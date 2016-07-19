@@ -350,8 +350,20 @@ public class JSqrlServerTest {
     }
 
     @Test
-    public void testHandleClientRequest_enable_existing_user() {
+    public void testHandleClientRequest_enable_existing_user() throws Exception {
+
+        //Generate a new key pair so we can sign the unlock request
+        KeyPairGenerator generator = new KeyPairGenerator();
+        generator.initialize(edDsaSpec, new SecureRandom());
+
+        KeyPair keyPair = generator.generateKeyPair();
+        PublicKey vukPublic = keyPair.getPublic();
+        PrivateKey vukPrivate = keyPair.getPrivate();
+
+        String vuk = getEncodedPublicKeyString(vukPublic);
+
         when(userService.getUserBySqrlKey(idkEncoded)).thenReturn(sqrlUser);
+        when(sqrlUser.getVerifyUnlockKey()).thenReturn(vuk);
 
         String clientRequestString = createClientRequestMapString(SQRL_VERSION,
                 "enable",
@@ -362,6 +374,9 @@ public class JSqrlServerTest {
                 null);
 
         SqrlClientRequest request = createClientRequest(clientRequestString, SERVER, clientPrivateKey);
+
+        byte[] urs = signRequest(request.getClient(), request.getServer(), vukPrivate);
+        request.setUrs(SqrlUtil.unpaddedBase64UrlEncoded(urs));
 
         SqrlAuthResponse response = jSqrlServer.handleClientRequest(request, NUT_STRING, IP_ADDRESS);
 
@@ -376,8 +391,20 @@ public class JSqrlServerTest {
     }
 
     @Test
-    public void testHandleClientRequest_remove_existing_user() {
+    public void testHandleClientRequest_remove_existing_user() throws Exception {
+
+        //Generate a new key pair so we can sign the unlock request
+        KeyPairGenerator generator = new KeyPairGenerator();
+        generator.initialize(edDsaSpec, new SecureRandom());
+
+        KeyPair keyPair = generator.generateKeyPair();
+        PublicKey vukPublic = keyPair.getPublic();
+        PrivateKey vukPrivate = keyPair.getPrivate();
+
+        String vuk = getEncodedPublicKeyString(vukPublic);
+
         when(userService.getUserBySqrlKey(idkEncoded)).thenReturn(sqrlUser);
+        when(sqrlUser.getVerifyUnlockKey()).thenReturn(vuk);
 
         String clientRequestString = createClientRequestMapString(SQRL_VERSION,
                 "remove",
@@ -388,6 +415,9 @@ public class JSqrlServerTest {
                 null);
 
         SqrlClientRequest request = createClientRequest(clientRequestString, SERVER, clientPrivateKey);
+
+        byte[] urs = signRequest(request.getClient(), request.getServer(), vukPrivate);
+        request.setUrs(SqrlUtil.unpaddedBase64UrlEncoded(urs));
 
         SqrlAuthResponse response = jSqrlServer.handleClientRequest(request, NUT_STRING, IP_ADDRESS);
 
