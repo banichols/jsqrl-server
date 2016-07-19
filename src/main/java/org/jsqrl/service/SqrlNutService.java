@@ -58,6 +58,13 @@ public class SqrlNutService {
         count = 0;
     }
 
+    /**
+     * Create a new nut for the provided associated IP Address. IP Address
+     * can be IPv4 or IPv6, we will only be using its hash for verification.
+     *
+     * @param ipAddress The IP Address to be associated with the nut
+     * @return The AES encrypted and Base64 encoded string representation of the nut
+     */
     public SqrlNut createNut(String ipAddress, boolean qr) {
         int random = rng.nextInt();
         count++;
@@ -66,6 +73,20 @@ public class SqrlNutService {
         } else {
             return new SqrlNut(hasher.digest(ipAddress.getBytes()), count, random, qr);
         }
+    }
+
+    /**
+     * This method will tell you if the provided nut string actually belongs to the
+     * IP Address that is making the request. This can be used to check the validity
+     * of a nut before even attempting to check the data store
+     *
+     * @param nutString The nut string the user is providing
+     * @param ipAddress The IP Address they are authenticating from
+     * @return
+     */
+    public Boolean nutBelongsToIp(String nutString, String ipAddress) {
+        SqrlNut nut = createNutFromString(nutString);
+        return nut.checkIpMatch(hasher.digest(ipAddress.getBytes()));
     }
 
     /**

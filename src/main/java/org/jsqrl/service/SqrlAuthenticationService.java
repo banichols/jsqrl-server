@@ -62,8 +62,10 @@ public interface SqrlAuthenticationService {
      * authentication request, but only after it has been authenticated.
      *
      * @param nut The nut that was initially provided to the user
+     * @param ipAddress The IP Address that the user is attempting to
+     *                  authenticate from
      * @return Returns the user's SQRL public key
      */
-    String getAuthenticatedSqrlIdentityKey(String nut);
+    String getAuthenticatedSqrlIdentityKey(String nut, String ipAddress);
 
 }

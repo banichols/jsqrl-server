@@ -18,7 +18,6 @@ package org.jsqrl.nut;
 
 import lombok.Getter;
 import lombok.ToString;
-import org.apache.commons.lang3.ArrayUtils;
 import org.jsqrl.error.SqrlException;
 
 import java.nio.ByteBuffer;
@@ -137,23 +136,32 @@ public class SqrlNut {
      * @return Returns true if the IP's match, false otherwise
      */
     public Boolean checkIpMatch(SqrlNut otherNut) {
+        return otherNut != null ? checkIpMatch(otherNut.getHashedIp()) : false;
+    }
 
-        Boolean matched = false;
+    /**
+     * This method is used to check if a requesting IP address matches this nut.
+     * Since it's the least significant part of the IP hash that's saved, we will compare
+     * the hashed values byte for byte.
+     *
+     * @param otherHashedIp The nut to compare IP addresses with
+     * @return Returns true if the IP's match, false otherwise
+     */
+    public Boolean checkIpMatch(byte[] otherHashedIp) {
 
-        if (otherNut != null && ArrayUtils.getLength(otherNut.getHashedIp()) >= 4) {
+        boolean match = false;
 
-            byte[] otherHash = otherNut.getHashedIp();
-
+        if (otherHashedIp != null && otherHashedIp.length >= 4) {
             //Check the least significant 4 bytes of each hash
             for (int i = 1; i <= 4; i++) {
-                if (!(hashedIp[hashedIp.length - i] == otherHash[otherHash.length - i])) {
+                if (!(hashedIp[hashedIp.length - i] == otherHashedIp[otherHashedIp.length - i])) {
                     return false;
                 }
             }
-            matched = true;
+            match = true;
         }
 
-        return matched;
+        return match;
 
     }
 
