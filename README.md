@@ -31,8 +31,7 @@ Once you have those six things taken care of you are ready to start taking SQRL 
 
 Notes:
 * This library does not generate the QR code itself. There are front-end libraries that will provide this functionality, but if you want to do it server-side there are Java library options for that as well. I used [qrcode.js](https://davidshimjs.github.io/qrcodejs/) in my [Spring Boot example](https://github.com/banichols/jsqrl-spring-boot-example)
-* While this library currently supports core SQRL functionality, there are a few missing features (such as ask). I will have issues open for these.
-* This library currently has dependencies on apache-lang-commons3 and apache-commons-collections4. I will evaluate if it makes sense to keep these.
+* While this library currently supports core SQRL functionality, there are a few missing features (such as ask).
 * I still have a lot of polishing work to do on this library. 
 
 For more information on SQRL, please visit https://www.grc.com/sqrl/sqrl.htm . Many thanks to Steve Gibson and GRC for all the work on creating this exciting new authentication protocol!
