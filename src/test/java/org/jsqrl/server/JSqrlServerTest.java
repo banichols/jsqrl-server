@@ -56,6 +56,7 @@ import static org.mockito.Mockito.*;
 @Slf4j
 public class JSqrlServerTest {
 
+    private static final String LINE_SEPARATOR = "\r\n";
     private static final String IP_ADDRESS = "IP_ADDRESS";
     private static final Integer COUNT = 9;
     private static final Integer RANDOM = 4; //chosen by fair dice roll. guaranteed to be random.
@@ -559,15 +560,15 @@ public class JSqrlServerTest {
 
         String string = stringBuilder.toString();
 
-        if (string != null && string.endsWith("\n")) {
-            string = string.substring(0, string.length() - 1);
+        if (string != null && string.endsWith(LINE_SEPARATOR)) {
+            string = string.substring(0, string.length() - 2);
         }
 
         return string;
     }
 
     private void appendKeyValueLine(StringBuilder sb, String key, String value) {
-        sb.append(key).append("=").append(value).append("\n");
+        sb.append(key).append("=").append(value).append(LINE_SEPARATOR);
     }
 
     private byte[] signRequest(String base64EncodedClient, String base64EncodedServer, PrivateKey privateKey) {

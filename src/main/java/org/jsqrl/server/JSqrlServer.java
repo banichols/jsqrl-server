@@ -98,6 +98,7 @@ public class JSqrlServer {
             verifyIdSignature(request, verifier);
             verifyPreviousIdSignature(request, verifier);
         } catch (SqrlException | NoSuchAlgorithmException e) {
+            log.debug("Unable to verify signature", e);
             return createResponse(responseNutString, null, TransactionInformationFlag.CLIENT_FAILURE);
         }
 

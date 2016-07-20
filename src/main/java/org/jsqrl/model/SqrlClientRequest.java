@@ -18,8 +18,6 @@ package org.jsqrl.model;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.jsqrl.util.SqrlUtil;
 
 import java.util.HashMap;
@@ -75,7 +73,7 @@ public class SqrlClientRequest {
     }
 
     public String getClientParameter(String parameter) {
-        return MapUtils.getString(clientParameters, parameter);
+        return (clientParameters != null) ? clientParameters.get(parameter) : null;
     }
 
     public String getIdentityKey() {
@@ -136,14 +134,13 @@ public class SqrlClientRequest {
 
     private Map<String, String> parseParameterString(String decodedString) {
 
-        if (StringUtils.isBlank(decodedString)) {
+        if (decodedString == null) {
             return new HashMap<>();
         }
 
-        String[] keyValuePairs = StringUtils.split(decodedString, "\n");
+        String[] keyValuePairs = decodedString.split("\r\n");
 
         return Stream.of(keyValuePairs)
-                .map(StringUtils::trimToEmpty)
                 .map(v -> v.split("="))
                 .filter(v -> v != null && v.length > 1)
                 .collect(Collectors.toMap(k -> k[0], v -> v[1]));

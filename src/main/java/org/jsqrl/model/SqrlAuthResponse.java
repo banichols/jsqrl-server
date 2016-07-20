@@ -18,8 +18,8 @@ package org.jsqrl.model;
 
 import lombok.Builder;
 import lombok.Getter;
+import org.jsqrl.util.SqrlUtil;
 
-import java.util.Base64;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -77,8 +77,7 @@ public class SqrlAuthResponse {
     }
 
     public String toEncodedString() {
-        String toString = toString();
-        return new String(Base64.getUrlEncoder().encode(toString.getBytes()));
+        return SqrlUtil.unpaddedBase64UrlEncoded(toString());
     }
 
     private StringBuilder appendKeyValuePairIfExists(StringBuilder builder,
@@ -89,6 +88,12 @@ public class SqrlAuthResponse {
         }
 
         return builder;
+    }
+
+    public void addAsk(String message, String button1, String button2) {
+        ask = SqrlUtil.unpaddedBase64UrlEncoded(message) + "~"
+                + SqrlUtil.unpaddedBase64UrlEncoded(button1) + "~"
+                + SqrlUtil.unpaddedBase64UrlEncoded(button2);
     }
 
     public static class SqrlAuthResponseBuilder {
