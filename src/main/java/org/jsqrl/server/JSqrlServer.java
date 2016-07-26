@@ -48,29 +48,58 @@ import java.util.Set;
 public class JSqrlServer {
 
     private SqrlUserService userService;
-    private SqrlAuthenticationService sqrlSqrlAuthenticationService;
+    private SqrlAuthenticationService sqrlAuthenticationService;
     private SqrlConfig config;
     private SqrlNutService nutService;
 
     private EdDSAParameterSpec edDsaSpec;
 
     public JSqrlServer(SqrlUserService userService,
-                       SqrlAuthenticationService sqrlSqrlAuthenticationService,
+                       SqrlAuthenticationService sqrlAuthenticationService,
                        SqrlConfig config,
                        SqrlNutService nutService) {
         this.userService = userService;
-        this.sqrlSqrlAuthenticationService = sqrlSqrlAuthenticationService;
+        this.sqrlAuthenticationService = sqrlAuthenticationService;
         this.config = config;
         this.nutService = nutService;
         edDsaSpec = EdDSANamedCurveTable.getByName(EdDSANamedCurveTable.CURVE_ED25519_SHA512);
     }
 
+    /**
+     * This method should be the method called when a user is requesting
+     * a nut. This creates the nut that signifies the authentication request,
+     * which should get marked as authenticated when the user uses a SQRL client
+     * to authenticate.
+     *
+     * @param ipAddress The requesting IP Address
+     * @param qr        If the user used the QR code or not
+     * @return Returns the nut to be provided to the user
+     */
     public String createAuthenticationRequest(String ipAddress, Boolean qr) {
         SqrlNut nut = nutService.createNut(ipAddress, qr);
         String nutString = nutService.getNutString(nut);
-        sqrlSqrlAuthenticationService.createAuthenticationRequest(nutString, ipAddress);
+        sqrlAuthenticationService.createAuthenticationRequest(nutString, ipAddress);
         log.debug("Creating nut {}", nutString);
         return nutString;
+    }
+
+    /**
+     * This method should be used to check the authentication status of a nut.
+     * This should be a nut created by the createAuthenticationRequest method
+     * that was marked as authenticated by using a SQRL client.
+     *
+     * @param nut       The nut provided by the user
+     * @param ipAddress The requesting IP Address
+     * @return Returns true if the nut was marked as authenticated
+     */
+    public Boolean checkAuthenticationStatus(String nut, String ipAddress) {
+
+        if (!nutService.nutBelongsToIp(nut, ipAddress)) {
+            return false;
+        } else if (sqrlAuthenticationService.getAuthenticatedSqrlIdentityKey(nut, ipAddress) != null) {
+            return true;
+        } else return false;
+
     }
 
     public SqrlAuthResponse handleClientRequest(SqrlClientRequest request,
@@ -115,7 +144,7 @@ public class JSqrlServer {
         } else {
 
             //Correlate the requesting nut with the new one that was generated
-            sqrlSqrlAuthenticationService.linkNut(nut, responseNutString);
+            sqrlAuthenticationService.linkNut(nut, responseNutString);
 
             //Add the TIF for an IP match
             if (requestNut.checkIpMatch(responseNut)) {
@@ -165,7 +194,7 @@ public class JSqrlServer {
                 }
 
                 //Authenticate the user
-                sqrlSqrlAuthenticationService.authenticateNut(responseNutString, identityKey);
+                sqrlAuthenticationService.authenticateNut(responseNutString, identityKey);
 
                 tifs.add(TransactionInformationFlag.ID_MATCH);
             } else if (command == SqrlCommand.DISABLE && sqrlEnabled) {
