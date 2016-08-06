@@ -47,35 +47,64 @@ import java.util.Set;
 @Slf4j
 public class JSqrlServer {
 
-    private final SqrlUserService userService;
-    private final SqrlAuthenticationService sqrlSqrlAuthenticationService;
-    private final SqrlConfig config;
-    private final SqrlNutService nutService;
+    private SqrlUserService userService;
+    private SqrlAuthenticationService sqrlAuthenticationService;
+    private SqrlConfig config;
+    private SqrlNutService nutService;
 
-    private final EdDSAParameterSpec edDsaSpec;
+    private EdDSAParameterSpec edDsaSpec;
 
     public JSqrlServer(SqrlUserService userService,
-                       SqrlAuthenticationService sqrlSqrlAuthenticationService,
+                       SqrlAuthenticationService sqrlAuthenticationService,
                        SqrlConfig config,
                        SqrlNutService nutService) {
         this.userService = userService;
-        this.sqrlSqrlAuthenticationService = sqrlSqrlAuthenticationService;
+        this.sqrlAuthenticationService = sqrlAuthenticationService;
         this.config = config;
         this.nutService = nutService;
         edDsaSpec = EdDSANamedCurveTable.getByName(EdDSANamedCurveTable.CURVE_ED25519_SHA512);
     }
 
-    public String createAuthenticationRequest(final String ipAddress, final Boolean qr) {
+    /**
+     * This method should be the method called when a user is requesting
+     * a nut. This creates the nut that signifies the authentication request,
+     * which should get marked as authenticated when the user uses a SQRL client
+     * to authenticate.
+     *
+     * @param ipAddress The requesting IP Address
+     * @param qr        If the user used the QR code or not
+     * @return Returns the nut to be provided to the user
+     */
+    public String createAuthenticationRequest(String ipAddress, Boolean qr) {
         SqrlNut nut = nutService.createNut(ipAddress, qr);
         String nutString = nutService.getNutString(nut);
-        sqrlSqrlAuthenticationService.createAuthenticationRequest(nutString, ipAddress);
+        sqrlAuthenticationService.createAuthenticationRequest(nutString, ipAddress);
         log.debug("Creating nut {}", nutString);
         return nutString;
     }
 
-    public SqrlAuthResponse handleClientRequest(final SqrlClientRequest request,
-                                                final String nut,
-                                                final String ipAddress) {
+    /**
+     * This method should be used to check the authentication status of a nut.
+     * This should be a nut created by the createAuthenticationRequest method
+     * that was marked as authenticated by using a SQRL client.
+     *
+     * @param nut       The nut provided by the user
+     * @param ipAddress The requesting IP Address
+     * @return Returns true if the nut was marked as authenticated
+     */
+    public Boolean checkAuthenticationStatus(String nut, String ipAddress) {
+
+        if (!nutService.nutBelongsToIp(nut, ipAddress)) {
+            return false;
+        } else if (sqrlAuthenticationService.getAuthenticatedSqrlIdentityKey(nut, ipAddress) != null) {
+            return true;
+        } else return false;
+
+    }
+
+    public SqrlAuthResponse handleClientRequest(SqrlClientRequest request,
+                                                String nut,
+                                                String ipAddress) {
 
         //Build the new nut for this request, retain the QR code
         SqrlNut requestNut = nutService.createNutFromString(nut);
@@ -115,7 +144,7 @@ public class JSqrlServer {
         } else {
 
             //Correlate the requesting nut with the new one that was generated
-            sqrlSqrlAuthenticationService.linkNut(nut, responseNutString);
+            sqrlAuthenticationService.linkNut(nut, responseNutString);
 
             //Add the TIF for an IP match
             if (requestNut.checkIpMatch(responseNut)) {
@@ -165,7 +194,7 @@ public class JSqrlServer {
                 }
 
                 //Authenticate the user
-                sqrlSqrlAuthenticationService.authenticateNut(responseNutString, identityKey);
+                sqrlAuthenticationService.authenticateNut(responseNutString, identityKey);
 
                 tifs.add(TransactionInformationFlag.ID_MATCH);
             } else if (command == SqrlCommand.DISABLE && sqrlEnabled) {
@@ -173,20 +202,12 @@ public class JSqrlServer {
                 userService.disableSqrlUser(identityKey);
             } else if (command == SqrlCommand.REMOVE && sqrlEnabled) {
                 //Remove the user's account
-                if (sqrlUser != null) {
-                    verifyUnlockRequestSignature(request, sqrlUser.getVerifyUnlockKey(), verifier);
-                    userService.removeSqrlUser(identityKey);
-                } else {
-                    tifs.add(TransactionInformationFlag.CLIENT_FAILURE);
-                }
+                verifyUnlockRequestSignature(request, sqrlUser.getVerifyUnlockKey(), verifier);
+                userService.removeSqrlUser(identityKey);
             } else if (command == SqrlCommand.ENABLE) {
                 //Re-enable the user's account
-                if (sqrlUser != null) {
-                    verifyUnlockRequestSignature(request, sqrlUser.getVerifyUnlockKey(), verifier);
-                    userService.enableSqrlUser(identityKey);
-                } else {
-                    tifs.add(TransactionInformationFlag.CLIENT_FAILURE);
-                }
+                verifyUnlockRequestSignature(request, sqrlUser.getVerifyUnlockKey(), verifier);
+                userService.enableSqrlUser(identityKey);
             }
 
         }
@@ -202,9 +223,7 @@ public class JSqrlServer {
 
     }
 
-    private SqrlAuthResponse createResponse(final String nut,
-                                            final String suk,
-                                            final TransactionInformationFlag... tifs) {
+    private SqrlAuthResponse createResponse(String nut, String suk, TransactionInformationFlag... tifs) {
 
         return SqrlAuthResponse.builder()
                 .nut(nut)
@@ -215,7 +234,7 @@ public class JSqrlServer {
 
     }
 
-    private void verifyIdSignature(final SqrlClientRequest request, final Signature verifier) {
+    private void verifyIdSignature(SqrlClientRequest request, Signature verifier) {
         verifySqrlRequestSignature(
                 request,
                 verifier,
@@ -224,9 +243,7 @@ public class JSqrlServer {
                 "Unable to verify ID Signature");
     }
 
-    private void verifyUnlockRequestSignature(final SqrlClientRequest request,
-                                              final String verifyUnlockKey,
-                                              final Signature verifier) {
+    private void verifyUnlockRequestSignature(SqrlClientRequest request, String verifyUnlockKey, Signature verifier) {
         verifySqrlRequestSignature(
                 request,
                 verifier,
@@ -235,7 +252,7 @@ public class JSqrlServer {
                 "Unable to verify Unlock Request Signature");
     }
 
-    private void verifyPreviousIdSignature(final SqrlClientRequest request, final Signature verifier) {
+    private void verifyPreviousIdSignature(SqrlClientRequest request, Signature verifier) {
         if (request.getPreviousIdentityKey() != null) {
             verifySqrlRequestSignature(
                     request,
@@ -246,11 +263,7 @@ public class JSqrlServer {
         }
     }
 
-    private void verifySqrlRequestSignature(final SqrlClientRequest request,
-                                            final Signature verifier,
-                                            final byte[] key,
-                                            final byte[] signature,
-                                            final String errorMessage) {
+    private void verifySqrlRequestSignature(SqrlClientRequest request, Signature verifier, byte[] key, byte[] signature, String errorMessage) {
         byte[] requestMessage = (request.getClient() + request.getServer()).getBytes();
         try {
             if (!verifyEdDSASignature(verifier, key, requestMessage, signature)) {
@@ -261,10 +274,10 @@ public class JSqrlServer {
         }
     }
 
-    private Boolean verifyEdDSASignature(final Signature verifier,
-                                         final byte[] key,
-                                         final byte[] message,
-                                         final byte[] signature) throws InvalidKeyException, SignatureException {
+    private Boolean verifyEdDSASignature(Signature verifier,
+                                         byte[] key,
+                                         byte[] message,
+                                         byte[] signature) throws InvalidKeyException, SignatureException {
         verifier.initVerify(new EdDSAPublicKey(new EdDSAPublicKeySpec(key, edDsaSpec)));
         verifier.update(message);
         return verifier.verify(signature);

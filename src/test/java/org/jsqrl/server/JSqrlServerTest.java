@@ -80,7 +80,7 @@ public class JSqrlServerTest {
     @Mock
     private SqrlUserService userService;
     @Mock
-    private SqrlAuthenticationService sqrlSqrlAuthenticationService;
+    private SqrlAuthenticationService sqrlAuthenticationService;
     private SqrlConfig config;
     @Mock
     private SqrlNutService nutService;
@@ -103,7 +103,7 @@ public class JSqrlServerTest {
         config.setSfn(SFN);
         config.setSqrlBaseUri(SQRL_BASE);
 
-        jSqrlServer = new JSqrlServer(userService, sqrlSqrlAuthenticationService, config, nutService);
+        jSqrlServer = new JSqrlServer(userService, sqrlAuthenticationService, config, nutService);
 
         when(nutService.createNutFromString(NUT_STRING)).thenReturn(sqrlNut);
         when(nutService.getNutString(sqrlNut)).thenReturn(NUT_STRING);
@@ -157,7 +157,7 @@ public class JSqrlServerTest {
         assertThat(response.getQry()).isEqualTo(SQRL_BASE + "?nut=" + NUT_STRING_2);
         assertThat(response.getTif()).isZero();
 
-        verify(sqrlSqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
+        verify(sqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
         verify(userService).getUserBySqrlKey(idkEncoded);
 
     }
@@ -184,7 +184,7 @@ public class JSqrlServerTest {
         assertThat(response.getQry()).isEqualTo(SQRL_BASE + "?nut=" + NUT_STRING_2);
         assertThat(response.getTif()).isEqualTo(1);
 
-        verify(sqrlSqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
+        verify(sqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
         verify(userService).getUserBySqrlKey(idkEncoded);
 
     }
@@ -210,7 +210,7 @@ public class JSqrlServerTest {
         assertThat(response.getQry()).isEqualTo(SQRL_BASE + "?nut=" + NUT_STRING_2);
         assertThat(response.getTif()).isEqualTo(1);
 
-        verify(sqrlSqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
+        verify(sqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
         verify(userService).getUserBySqrlKey(idkEncoded);
         verify(userService).registerSqrlUser(idkEncoded, SERVER_UNLOCK_KEY, VERIFY_UNLOCK_KEY);
     }
@@ -250,7 +250,7 @@ public class JSqrlServerTest {
         assertThat(response.getQry()).isEqualTo(SQRL_BASE + "?nut=" + NUT_STRING_2);
         assertResponseTifs(response, TransactionInformationFlag.PREVIOUS_ID_MATCH, TransactionInformationFlag.ID_MATCH);
 
-        verify(sqrlSqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
+        verify(sqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
         verify(userService).getUserBySqrlKey(idkEncoded);
         verify(userService).getUserBySqrlKey(pidkEncoded);
         verify(userService).updateIdentityKey(pidkEncoded, idkEncoded);
@@ -290,7 +290,7 @@ public class JSqrlServerTest {
         assertThat(response.getQry()).isEqualTo(SQRL_BASE + "?nut=" + NUT_STRING_2);
         assertResponseTifs(response, TransactionInformationFlag.CLIENT_FAILURE);
 
-        verify(sqrlSqrlAuthenticationService, never()).linkNut(NUT_STRING, NUT_STRING_2);
+        verify(sqrlAuthenticationService, never()).linkNut(NUT_STRING, NUT_STRING_2);
         verify(userService, never()).getUserBySqrlKey(anyString());
         verify(userService, never()).updateIdentityKey(anyString(), anyString());
     }
@@ -319,9 +319,9 @@ public class JSqrlServerTest {
         assertThat(response.getQry()).isEqualTo(SQRL_BASE + "?nut=" + NUT_STRING_2);
         assertThat(response.getTif()).isEqualTo(TransactionInformationFlag.ID_MATCH.getHexValue() | TransactionInformationFlag.SQRL_DISABLED.getHexValue());
 
-        verify(sqrlSqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
+        verify(sqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
         verify(userService).getUserBySqrlKey(idkEncoded);
-        verify(sqrlSqrlAuthenticationService, never()).authenticateNut(anyString(), anyString());
+        verify(sqrlAuthenticationService, never()).authenticateNut(anyString(), anyString());
     }
 
     @Test
@@ -345,7 +345,7 @@ public class JSqrlServerTest {
         assertThat(response.getQry()).isEqualTo(SQRL_BASE + "?nut=" + NUT_STRING_2);
         assertThat(response.getTif()).isEqualTo(TransactionInformationFlag.ID_MATCH.getHexValue());
 
-        verify(sqrlSqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
+        verify(sqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
         verify(userService).getUserBySqrlKey(idkEncoded);
         verify(userService).disableSqrlUser(idkEncoded);
     }
@@ -386,7 +386,7 @@ public class JSqrlServerTest {
         assertThat(response.getQry()).isEqualTo(SQRL_BASE + "?nut=" + NUT_STRING_2);
         assertThat(response.getTif()).isEqualTo(TransactionInformationFlag.ID_MATCH.getHexValue());
 
-        verify(sqrlSqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
+        verify(sqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
         verify(userService).getUserBySqrlKey(idkEncoded);
         verify(userService).enableSqrlUser(idkEncoded);
     }
@@ -427,7 +427,7 @@ public class JSqrlServerTest {
         assertThat(response.getQry()).isEqualTo(SQRL_BASE + "?nut=" + NUT_STRING_2);
         assertThat(response.getTif()).isEqualTo(TransactionInformationFlag.ID_MATCH.getHexValue());
 
-        verify(sqrlSqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
+        verify(sqrlAuthenticationService).linkNut(NUT_STRING, NUT_STRING_2);
         verify(userService).getUserBySqrlKey(idkEncoded);
         verify(userService).removeSqrlUser(idkEncoded);
     }
@@ -463,7 +463,7 @@ public class JSqrlServerTest {
         assertResponseTifs(response, TransactionInformationFlag.CLIENT_FAILURE);
 
         /**TODO Is it valid to assume we shouldn't link a request with a bad signature to one that had a good signature?*/
-        verify(sqrlSqrlAuthenticationService, never()).linkNut(NUT_STRING, NUT_STRING_2);
+        verify(sqrlAuthenticationService, never()).linkNut(NUT_STRING, NUT_STRING_2);
         verify(userService, never()).getUserBySqrlKey(idkEncoded);
     }
 
@@ -491,10 +491,36 @@ public class JSqrlServerTest {
         assertResponseTifs(response, TransactionInformationFlag.CLIENT_FAILURE);
 
         /**TODO Is it valid to assume we shouldn't link a request with a bad signature to one that had a good signature?*/
-        verify(sqrlSqrlAuthenticationService, never()).linkNut(NUT_STRING, NUT_STRING_2);
+        verify(sqrlAuthenticationService, never()).linkNut(NUT_STRING, NUT_STRING_2);
         verify(userService, never()).getUserBySqrlKey(idkEncoded);
     }
 
+    @Test
+    public void test_checkAuthenticationStatus() {
+        when(nutService.nutBelongsToIp(NUT_STRING, IP_ADDRESS)).thenReturn(true);
+        when(sqrlAuthenticationService.getAuthenticatedSqrlIdentityKey(NUT_STRING, IP_ADDRESS)).thenReturn(idkEncoded);
+        assertThat(jSqrlServer.checkAuthenticationStatus(NUT_STRING, IP_ADDRESS)).isTrue();
+        verify(nutService).nutBelongsToIp(NUT_STRING, IP_ADDRESS);
+        verify(sqrlAuthenticationService).getAuthenticatedSqrlIdentityKey(NUT_STRING, IP_ADDRESS);
+    }
+
+    @Test
+    public void test_checkAuthenticationStatus_ip_mismatch() {
+        when(nutService.nutBelongsToIp(NUT_STRING, IP_ADDRESS)).thenReturn(false);
+        assertThat(jSqrlServer.checkAuthenticationStatus(NUT_STRING, IP_ADDRESS)).isFalse();
+        verify(nutService).nutBelongsToIp(NUT_STRING, IP_ADDRESS);
+        verify(sqrlAuthenticationService, never()).getAuthenticatedSqrlIdentityKey(anyString(), anyString());
+    }
+
+    @Test
+    public void test_checkAuthenticationStatus_not_yet_authenticated() {
+        when(nutService.nutBelongsToIp(NUT_STRING, IP_ADDRESS)).thenReturn(true);
+        when(sqrlAuthenticationService.getAuthenticatedSqrlIdentityKey(NUT_STRING, IP_ADDRESS)).thenReturn(null);
+        assertThat(jSqrlServer.checkAuthenticationStatus(NUT_STRING, IP_ADDRESS)).isFalse();
+        verify(nutService).nutBelongsToIp(NUT_STRING, IP_ADDRESS);
+        verify(sqrlAuthenticationService).getAuthenticatedSqrlIdentityKey(NUT_STRING, IP_ADDRESS);
+    }
+    
     private void assertResponseTifs(SqrlAuthResponse response, TransactionInformationFlag... expectedTifs) {
 
         int expectedTifValue = 0;
