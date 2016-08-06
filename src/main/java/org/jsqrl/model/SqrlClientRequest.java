@@ -66,13 +66,13 @@ public class SqrlClientRequest {
 
     private Set<SqrlOptionFlag> optionFlags;
 
-    public void setClient(String client) {
+    public void setClient(final String client) {
         this.client = client;
         clientParameters = parseParameterString(new String(SqrlUtil.base64UrlDecode(client)));
         optionFlags = parseOptionFlags(clientParameters);
     }
 
-    public String getClientParameter(String parameter) {
+    public String getClientParameter(final String parameter) {
         return (clientParameters != null) ? clientParameters.get(parameter) : null;
     }
 
@@ -132,7 +132,7 @@ public class SqrlClientRequest {
         }
     }
 
-    private Map<String, String> parseParameterString(String decodedString) {
+    private Map<String, String> parseParameterString(final String decodedString) {
 
         if (decodedString == null) {
             return new HashMap<>();
@@ -147,7 +147,7 @@ public class SqrlClientRequest {
 
     }
 
-    private Set<SqrlOptionFlag> parseOptionFlags(Map<String, String> clientParameters) {
+    private Set<SqrlOptionFlag> parseOptionFlags(final Map<String, String> clientParameters) {
         String optionString = clientParameters.get(OPTIONS);
         return (optionString == null) ? null :
                 Stream.of(optionString.split("~"))

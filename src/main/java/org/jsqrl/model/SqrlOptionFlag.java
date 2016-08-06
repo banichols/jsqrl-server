@@ -33,7 +33,7 @@ public enum SqrlOptionFlag {
     SERVER_UNLOCK_KEY("suk");
 
     @Getter
-    private String opt;
+    private final String opt;
 
     SqrlOptionFlag(String opt) {
         this.opt = opt;

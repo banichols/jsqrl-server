@@ -33,7 +33,7 @@ public enum SqrlCommand {
     REMOVE("remove");
 
     @Getter
-    private String cmd;
+    private final String cmd;
 
     SqrlCommand(String cmd) {
         this.cmd = cmd;

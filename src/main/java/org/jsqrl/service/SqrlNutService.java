@@ -41,16 +41,16 @@ import java.util.Random;
  */
 public class SqrlNutService {
 
-    private Random rng;
-    private SqrlConfig config;
-    private MessageDigest hasher;
+    private final Random rng;
+    private final SqrlConfig config;
+    private final MessageDigest hasher;
+    private final Key serverEncryptionKey;
     private Integer count;
-    private Key serverEncryptionKey;
 
-    public SqrlNutService(Random rng,
-                          SqrlConfig config,
-                          MessageDigest hasher,
-                          Key serverEncryptionKey) {
+    public SqrlNutService(final Random rng,
+                          final SqrlConfig config,
+                          final MessageDigest hasher,
+                          final Key serverEncryptionKey) {
         this.rng = rng;
         this.config = config;
         this.hasher = hasher;
@@ -65,7 +65,8 @@ public class SqrlNutService {
      * @param ipAddress The IP Address to be associated with the nut
      * @return The AES encrypted and Base64 encoded string representation of the nut
      */
-    public SqrlNut createNut(String ipAddress, boolean qr) {
+    public SqrlNut createNut(final String ipAddress,
+                             final boolean qr) {
         int random = rng.nextInt();
         count++;
         if (ipAddress == null) {
@@ -82,9 +83,10 @@ public class SqrlNutService {
      *
      * @param nutString The nut string the user is providing
      * @param ipAddress The IP Address they are authenticating from
-     * @return
+     * @return Returns true if the nut belongs to the provided IP Address
      */
-    public Boolean nutBelongsToIp(String nutString, String ipAddress) {
+    public Boolean nutBelongsToIp(final String nutString,
+                                  final String ipAddress) {
         SqrlNut nut = createNutFromString(nutString);
         return nut.checkIpMatch(hasher.digest(ipAddress.getBytes()));
     }
@@ -95,10 +97,9 @@ public class SqrlNutService {
      * @param sqrlNut The SQRL Nut to encrypt and encode
      * @return The AES encrypted and Base64 encoded string representation of the nut
      */
-    public String getNutString(SqrlNut sqrlNut) {
+    public String getNutString(final SqrlNut sqrlNut) {
         try {
-            Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
-            cipher.init(Cipher.ENCRYPT_MODE, serverEncryptionKey);
+            Cipher cipher = getCipher(Cipher.ENCRYPT_MODE);
             byte[] encrypted = cipher.doFinal(sqrlNut.toByteArray());
             return SqrlUtil.unpaddedBase64UrlEncoded(encrypted);
         } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
@@ -106,7 +107,7 @@ public class SqrlNutService {
         }
     }
 
-    public SqrlNut createNutFromString(String encryptedAndEncodedNut) {
+    public SqrlNut createNutFromString(final String encryptedAndEncodedNut) {
         byte[] decodedEncryptedString = SqrlUtil.base64UrlDecode(encryptedAndEncodedNut);
         try {
             byte[] decrypted = getCipher(Cipher.DECRYPT_MODE).doFinal(decodedEncryptedString);
@@ -124,7 +125,7 @@ public class SqrlNutService {
         }
     }
 
-    private Cipher getCipher(int encryptMode) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException {
+    private Cipher getCipher(final int encryptMode) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException {
         Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
         cipher.init(encryptMode, serverEncryptionKey);
         return cipher;

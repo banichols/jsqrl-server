@@ -47,12 +47,12 @@ import java.util.Set;
 @Slf4j
 public class JSqrlServer {
 
-    private SqrlUserService userService;
-    private SqrlAuthenticationService sqrlSqrlAuthenticationService;
-    private SqrlConfig config;
-    private SqrlNutService nutService;
+    private final SqrlUserService userService;
+    private final SqrlAuthenticationService sqrlSqrlAuthenticationService;
+    private final SqrlConfig config;
+    private final SqrlNutService nutService;
 
-    private EdDSAParameterSpec edDsaSpec;
+    private final EdDSAParameterSpec edDsaSpec;
 
     public JSqrlServer(SqrlUserService userService,
                        SqrlAuthenticationService sqrlSqrlAuthenticationService,
@@ -65,7 +65,7 @@ public class JSqrlServer {
         edDsaSpec = EdDSANamedCurveTable.getByName(EdDSANamedCurveTable.CURVE_ED25519_SHA512);
     }
 
-    public String createAuthenticationRequest(String ipAddress, Boolean qr) {
+    public String createAuthenticationRequest(final String ipAddress, final Boolean qr) {
         SqrlNut nut = nutService.createNut(ipAddress, qr);
         String nutString = nutService.getNutString(nut);
         sqrlSqrlAuthenticationService.createAuthenticationRequest(nutString, ipAddress);
@@ -73,9 +73,9 @@ public class JSqrlServer {
         return nutString;
     }
 
-    public SqrlAuthResponse handleClientRequest(SqrlClientRequest request,
-                                                String nut,
-                                                String ipAddress) {
+    public SqrlAuthResponse handleClientRequest(final SqrlClientRequest request,
+                                                final String nut,
+                                                final String ipAddress) {
 
         //Build the new nut for this request, retain the QR code
         SqrlNut requestNut = nutService.createNutFromString(nut);
@@ -173,12 +173,20 @@ public class JSqrlServer {
                 userService.disableSqrlUser(identityKey);
             } else if (command == SqrlCommand.REMOVE && sqrlEnabled) {
                 //Remove the user's account
-                verifyUnlockRequestSignature(request, sqrlUser.getVerifyUnlockKey(), verifier);
-                userService.removeSqrlUser(identityKey);
+                if (sqrlUser != null) {
+                    verifyUnlockRequestSignature(request, sqrlUser.getVerifyUnlockKey(), verifier);
+                    userService.removeSqrlUser(identityKey);
+                } else {
+                    tifs.add(TransactionInformationFlag.CLIENT_FAILURE);
+                }
             } else if (command == SqrlCommand.ENABLE) {
                 //Re-enable the user's account
-                verifyUnlockRequestSignature(request, sqrlUser.getVerifyUnlockKey(), verifier);
-                userService.enableSqrlUser(identityKey);
+                if (sqrlUser != null) {
+                    verifyUnlockRequestSignature(request, sqrlUser.getVerifyUnlockKey(), verifier);
+                    userService.enableSqrlUser(identityKey);
+                } else {
+                    tifs.add(TransactionInformationFlag.CLIENT_FAILURE);
+                }
             }
 
         }
@@ -194,7 +202,9 @@ public class JSqrlServer {
 
     }
 
-    private SqrlAuthResponse createResponse(String nut, String suk, TransactionInformationFlag... tifs) {
+    private SqrlAuthResponse createResponse(final String nut,
+                                            final String suk,
+                                            final TransactionInformationFlag... tifs) {
 
         return SqrlAuthResponse.builder()
                 .nut(nut)
@@ -205,7 +215,7 @@ public class JSqrlServer {
 
     }
 
-    private void verifyIdSignature(SqrlClientRequest request, Signature verifier) {
+    private void verifyIdSignature(final SqrlClientRequest request, final Signature verifier) {
         verifySqrlRequestSignature(
                 request,
                 verifier,
@@ -214,7 +224,9 @@ public class JSqrlServer {
                 "Unable to verify ID Signature");
     }
 
-    private void verifyUnlockRequestSignature(SqrlClientRequest request, String verifyUnlockKey, Signature verifier) {
+    private void verifyUnlockRequestSignature(final SqrlClientRequest request,
+                                              final String verifyUnlockKey,
+                                              final Signature verifier) {
         verifySqrlRequestSignature(
                 request,
                 verifier,
@@ -223,7 +235,7 @@ public class JSqrlServer {
                 "Unable to verify Unlock Request Signature");
     }
 
-    private void verifyPreviousIdSignature(SqrlClientRequest request, Signature verifier) {
+    private void verifyPreviousIdSignature(final SqrlClientRequest request, final Signature verifier) {
         if (request.getPreviousIdentityKey() != null) {
             verifySqrlRequestSignature(
                     request,
@@ -234,7 +246,11 @@ public class JSqrlServer {
         }
     }
 
-    private void verifySqrlRequestSignature(SqrlClientRequest request, Signature verifier, byte[] key, byte[] signature, String errorMessage) {
+    private void verifySqrlRequestSignature(final SqrlClientRequest request,
+                                            final Signature verifier,
+                                            final byte[] key,
+                                            final byte[] signature,
+                                            final String errorMessage) {
         byte[] requestMessage = (request.getClient() + request.getServer()).getBytes();
         try {
             if (!verifyEdDSASignature(verifier, key, requestMessage, signature)) {
@@ -245,10 +261,10 @@ public class JSqrlServer {
         }
     }
 
-    private Boolean verifyEdDSASignature(Signature verifier,
-                                         byte[] key,
-                                         byte[] message,
-                                         byte[] signature) throws InvalidKeyException, SignatureException {
+    private Boolean verifyEdDSASignature(final Signature verifier,
+                                         final byte[] key,
+                                         final byte[] message,
+                                         final byte[] signature) throws InvalidKeyException, SignatureException {
         verifier.initVerify(new EdDSAPublicKey(new EdDSAPublicKeySpec(key, edDsaSpec)));
         verifier.update(message);
         return verifier.verify(signature);

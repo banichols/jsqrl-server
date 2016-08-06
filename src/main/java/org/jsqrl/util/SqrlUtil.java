@@ -28,19 +28,19 @@ public class SqrlUtil {
     private SqrlUtil() {
     }
 
-    public static String unpaddedBase64UrlEncoded(String unencodedString) {
+    public static String unpaddedBase64UrlEncoded(final String unencodedString) {
         return unpaddedBase64UrlEncoded(unencodedString.getBytes());
     }
 
-    public static String unpaddedBase64UrlEncoded(byte[] unencodedBytes) {
+    public static String unpaddedBase64UrlEncoded(final byte[] unencodedBytes) {
         return stripEndEquals(new String(Base64.getUrlEncoder().encode(unencodedBytes)));
     }
 
-    public static byte[] base64UrlDecode(String encodedString) {
+    public static byte[] base64UrlDecode(final String encodedString) {
         return base64UrlDecode(encodedString.getBytes());
     }
 
-    public static byte[] base64UrlDecode(byte[] encodedBytes) {
+    public static byte[] base64UrlDecode(final byte[] encodedBytes) {
         return Base64.getUrlDecoder().decode(encodedBytes);
     }
 
@@ -50,7 +50,7 @@ public class SqrlUtil {
      * @param base64EncodedString The Base64 encoded string to strip the trailing "=" characters from
      * @return The provided encoded string, minus its trailing = characters
      */
-    public static String stripEndEquals(String base64EncodedString) {
+    public static String stripEndEquals(final String base64EncodedString) {
 
         int equalsSigns = 0;
         int strLength = base64EncodedString.length();

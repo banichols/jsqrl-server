@@ -82,11 +82,7 @@ public class SqrlNut {
         ByteBuffer noiseBuffer = ByteBuffer.wrap(Arrays.copyOfRange(bytes, 12, 16));
         random = noiseBuffer.getInt();
 
-        if (random % 2 != 0) {
-            qr = true;
-        } else {
-            qr = false;
-        }
+        qr = random % 2 != 0;
 
     }
 
