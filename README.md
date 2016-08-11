@@ -9,7 +9,7 @@ This library can be used to process SQRL authentication requests. It currently f
 This project has no framework requirements (you could even get away with not using JavaEE if you wanted). 
 The only requirement of your server is that it needs to accept an HTTP POST from a SQRL client.
 
-For an implementation example, see my [Spring Boot with Spring Security example](https://github.com/banichols/jsqrl-spring-boot-example).
+For an implementation example, see my [Spring Boot with Spring Security example](https://github.com/banichols/jsqrl-spring-boot-example), which is currently deployed to https://demo.jsqrl.org
 
 ## Getting Started
 
