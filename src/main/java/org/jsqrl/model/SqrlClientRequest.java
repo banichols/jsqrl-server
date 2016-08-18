@@ -21,6 +21,7 @@ import lombok.Setter;
 import org.jsqrl.util.SqrlUtil;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -144,12 +145,11 @@ public class SqrlClientRequest {
                 .map(v -> v.split("="))
                 .filter(v -> v != null && v.length > 1)
                 .collect(Collectors.toMap(k -> k[0], v -> v[1]));
-
     }
 
     private Set<SqrlOptionFlag> parseOptionFlags(final Map<String, String> clientParameters) {
         String optionString = clientParameters.get(OPTIONS);
-        return (optionString == null) ? null :
+        return (optionString == null || "".equals(optionString)) ? new HashSet<>() :
                 Stream.of(optionString.split("~"))
                 .map(SqrlOptionFlag::from)
                 .filter(o -> o != null)
