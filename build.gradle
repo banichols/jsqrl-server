@@ -3,7 +3,7 @@ plugins {
 }
 
 group 'org.jsqrl'
-version '0.1.0-SNAPSHOT'
+version '0.1.1-SNAPSHOT'
 
 apply plugin: 'java'
 apply plugin: 'nebula.provided-base'
@@ -39,4 +39,32 @@ dependencies {
     testCompile group: 'org.assertj', name: 'assertj-core', version: '3.3.0'
     testCompile('ch.qos.logback:logback-classic:1.1.7')
     testCompile('org.mockito:mockito-all:1.10.19')
+}
+
+task createPom  {
+    pom {
+        project {
+            name 'JSQRL Server'
+            description 'Java web server implementation of the SQRL authentication protocol'
+            artifactId rootProject.name
+            url 'https://github.com/banichols/jsqrl-server'
+            inceptionYear '2016'
+            licenses {
+                license {
+                    name 'The Apache Software License, Version 2.0'
+                    url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    distribution 'repo'
+                }
+            }
+            scm {
+                url 'https://github.com/banichols/jsqrl-server'
+            }
+            developers {
+                developer {
+                    id 'banichols'
+                    name 'Brent Nichols'
+                }
+            }
+        }
+    }.writeTo("pom.xml")
 }
